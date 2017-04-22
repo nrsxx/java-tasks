@@ -11,7 +11,6 @@ public class MyQueue<T> implements CustomQueue<T> {
     @Override
     public synchronized void enqueue(T task) {
         queue.add(task);
-        // Wake up anyone waiting on the queue to put some item.
         notifyAll();
     }
 

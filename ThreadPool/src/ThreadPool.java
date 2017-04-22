@@ -10,7 +10,7 @@ public class ThreadPool {
     private ArrayList<Thread> threads = new ArrayList();
 
     private ThreadPool(int capacity) {
-        this.threadPoolCapacity = capacity;
+        threadPoolCapacity = capacity;
         initAllWorkers();
     }
 
@@ -36,8 +36,8 @@ public class ThreadPool {
 
     public static void main(String... args) throws InterruptedException, ExecutionException {
 
-        Integer i = 3;
-        int num = Integer.parseInt(i.toString());//args[0]);
+        int i = 3;
+        int num = i;//args[0];
         ThreadPool threadPool = new ThreadPool(num);
         Scanner sc = new Scanner(System.in);
 
