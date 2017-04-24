@@ -1,15 +1,16 @@
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
 
 public class SoftCacheMap implements Cache<Integer, Object> {
 
     private HashMap<Integer, SoftReference<Object>> cache;
     private HashMap<SoftReference<Object>, HashSet<Integer>> subsidiaryMap;
     private ReferenceQueue<SoftReference<Object>> referenceQueue;
+    private Deque<Object> recentlyUsed;
+    private int maxSize;
 
-    private SoftCacheMap() {
+    private SoftCacheMap(int size) {
         cache = new HashMap<>();
         /**
          * второй hashMap - вспомогательный, используется при удалении из кэша
@@ -19,7 +20,22 @@ public class SoftCacheMap implements Cache<Integer, Object> {
          */
         subsidiaryMap = new HashMap<>();
         referenceQueue = new ReferenceQueue<>();
+        recentlyUsed = new LinkedList<>();
+        maxSize = size;
     }
+
+    private void putInQueue(Object object) {
+        if (object != null) {
+            recentlyUsed.remove(object);
+            if (recentlyUsed.size() < maxSize) {
+                recentlyUsed.addLast(object);
+            } else {
+                recentlyUsed.addLast(object);
+                recentlyUsed.removeFirst();
+            }
+        }
+    }
+
 
     private void clean() {
         boolean done = false;
@@ -41,6 +57,7 @@ public class SoftCacheMap implements Cache<Integer, Object> {
     @Override
     public Object getIfPresent(Integer key) {
         if (cache.containsKey(key)) {
+            putInQueue(cache.get(key).get());
             return cache.get(key).get();
         }
         return null;
@@ -50,6 +67,7 @@ public class SoftCacheMap implements Cache<Integer, Object> {
     public void put(Integer key, Object value) {
         SoftReference<Object> reference = new SoftReference(value, referenceQueue);
         cache.put(key, reference);
+        putInQueue(value);
         if (subsidiaryMap.containsKey(reference)) {
             subsidiaryMap.get(reference).add(key);
         } else {
