@@ -3,66 +3,73 @@ import java.lang.ref.SoftReference;
 import java.util.HashMap;
 import java.util.HashSet;
 
-public class SoftCacheMap implements Cache<Integer, String> {
+public class SoftCacheMap implements Cache<Integer, Object> {
 
-    private HashMap<Integer, SoftReference<String>> hashMap1;
-    private HashMap<SoftReference<String>, HashSet<Integer>> hashMap2;
-    private ReferenceQueue<SoftReference<String>> referenceQueue;
+    private HashMap<Integer, SoftReference<Object>> cache;
+    private HashMap<SoftReference<Object>, HashSet<Integer>> subsidiaryMap;
+    private ReferenceQueue<SoftReference<Object>> referenceQueue;
 
     private SoftCacheMap() {
-        hashMap1 = new HashMap();
-        hashMap2 = new HashMap();
-        referenceQueue = new ReferenceQueue();
+        cache = new HashMap<>();
+        /**
+         * второй hashMap - вспомогательный, используется при удалении из кэша
+         * тех ссылок, которые попали в referenceQueue. Чтобы не искать все ключи,
+         * соответствующие одной ссылке, храню Set из таких ключей в качестве значения
+         * во втором hashMap-e.
+         */
+        subsidiaryMap = new HashMap<>();
+        referenceQueue = new ReferenceQueue<>();
     }
 
-    private boolean delete() {
-        SoftReference reference = (SoftReference) referenceQueue.poll();
-        if (reference != null) {
-            if (hashMap1.entrySet().contains(reference)) {
-                HashSet localSet = hashMap2.remove(reference);
-                for (Object local : localSet) {
-                    hashMap1.remove(local);
+    private void clean() {
+        boolean done = false;
+        while (!done) {
+            SoftReference reference = (SoftReference) referenceQueue.poll();
+            if (reference != null) {
+                if (cache.entrySet().contains(reference)) {
+                    HashSet<Integer> localSet = subsidiaryMap.remove(reference);
+                    for (Integer local : localSet) {
+                        cache.remove(local);
+                    }
                 }
+            } else {
+                done = true;
             }
-            return true;
-        } else {
-            return false;
         }
     }
 
     @Override
-    public String getIfPresent(Integer key) {
-        if (hashMap1.get(key).get() != null) {
-            return hashMap1.get(key).get();
+    public Object getIfPresent(Integer key) {
+        if (cache.containsKey(key)) {
+            return cache.get(key).get();
         }
         return null;
     }
 
     @Override
-    public void put(Integer key, String value) {
-        hashMap1.put(key, new SoftReference(value, referenceQueue));
-        if (hashMap2.get(hashMap1.get(key)) != null) {
-            hashMap2.get(hashMap1.get(key)).add(key);
+    public void put(Integer key, Object value) {
+        SoftReference<Object> reference = new SoftReference(value, referenceQueue);
+        cache.put(key, reference);
+        if (subsidiaryMap.containsKey(reference)) {
+            subsidiaryMap.get(reference).add(key);
         } else {
-            hashMap2.put(hashMap1.get(key), new HashSet(key));
+            subsidiaryMap.put(reference, new HashSet<>(key));
         }
-        while (delete()) {
-            //delete references
-        }
+        clean();
     }
 
     @Override
-    public String remove(Integer key) {
-        if (hashMap1.get(key).get() != null) {
-            hashMap2.remove(hashMap1.get(key));
-            return hashMap1.remove(key).get();
+    public Object remove(Integer key) {
+        if ((cache.containsKey(key)) && (cache.get(key).get() != null)) {
+            subsidiaryMap.remove(cache.get(key));
+            return cache.remove(key).get();
         }
         return null;
     }
 
     @Override
     public void clear() {
-        hashMap1.clear();
-        hashMap2.clear();
+        cache.clear();
+        subsidiaryMap.clear();
     }
 }
