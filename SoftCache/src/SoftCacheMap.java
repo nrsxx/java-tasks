@@ -9,7 +9,7 @@ public class SoftCacheMap<K, V> implements Cache<K, V> {
 
     private HashMap<K, SoftReference<V>> cache;
     private HashMap<SoftReference<V>, HashSet<K>> subsidiaryMap;
-    private ReferenceQueue<? super Object> referenceQueue;
+    private ReferenceQueue<V> referenceQueue;
     private Deque<V> recentlyUsed;
     private int maxSize;
     private int cleaningFrequency;
