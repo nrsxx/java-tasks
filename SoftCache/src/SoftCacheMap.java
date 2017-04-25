@@ -5,10 +5,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 
-public class SoftCacheMap<V> implements Cache<Integer, V> {
+public class SoftCacheMap<K, V> implements Cache<K, V> {
 
-    private HashMap<Integer, SoftReference<V>> cache;
-    private HashMap<SoftReference<V>, HashSet<Integer>> subsidiaryMap;
+    private HashMap<K, SoftReference<V>> cache;
+    private HashMap<SoftReference<V>, HashSet<K>> subsidiaryMap;
     private ReferenceQueue<? super Object> referenceQueue;
     private Deque<V> recentlyUsed;
     private int maxSize;
@@ -52,8 +52,8 @@ public class SoftCacheMap<V> implements Cache<Integer, V> {
             SoftReference reference = (SoftReference) referenceQueue.poll();
             if (reference != null) {
                 if (subsidiaryMap.containsKey(reference)) {
-                    HashSet<Integer> localSet = subsidiaryMap.remove(reference);
-                    for (Integer local : localSet) {
+                    HashSet<K> localSet = subsidiaryMap.remove(reference);
+                    for (K local : localSet) {
                         if (reference.get() == null) {
                             cache.remove(local);
                         }
@@ -66,7 +66,7 @@ public class SoftCacheMap<V> implements Cache<Integer, V> {
     }
 
     @Override
-    public V getIfPresent(Integer key) {
+    public V getIfPresent(K key) {
         if (cache.containsKey(key)) {
             putInQueue(cache.get(key).get());
             return cache.get(key).get();
@@ -75,7 +75,7 @@ public class SoftCacheMap<V> implements Cache<Integer, V> {
     }
 
     @Override
-    public void put(Integer key, V value) {
+    public void put(K key, V value) {
         ++numOfPuts;
         SoftReference<V> reference = new SoftReference<>(value, referenceQueue);
         cache.put(key, reference);
@@ -92,7 +92,7 @@ public class SoftCacheMap<V> implements Cache<Integer, V> {
     }
 
     @Override
-    public V remove(Integer key) {
+    public V remove(K key) {
         if ((cache.containsKey(key)) && (cache.get(key).get() != null)) {
             subsidiaryMap.remove(cache.get(key));
             return cache.remove(key).get();
