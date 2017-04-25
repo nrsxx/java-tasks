@@ -1,7 +1,9 @@
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 
 public class SoftCacheMap<V> implements Cache<Integer, V> {
 
@@ -22,7 +24,7 @@ public class SoftCacheMap<V> implements Cache<Integer, V> {
          * во втором hashMap-e.
          */
         subsidiaryMap = new HashMap<>();
-        referenceQueue = new ReferenceQueue();
+        referenceQueue = new ReferenceQueue<>();
         recentlyUsed = new LinkedList<>();
         maxSize = size;
         cleaningFrequency = frequency;
@@ -75,7 +77,7 @@ public class SoftCacheMap<V> implements Cache<Integer, V> {
     @Override
     public void put(Integer key, V value) {
         ++numOfPuts;
-        SoftReference<V> reference = new SoftReference(value, referenceQueue);
+        SoftReference<V> reference = new SoftReference<>(value, referenceQueue);
         cache.put(key, reference);
         putInQueue(value);
         if (subsidiaryMap.containsKey(reference)) {
