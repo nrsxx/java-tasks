@@ -1,16 +1,19 @@
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class SoftCacheMap<V> implements Cache<Integer, V> {
 
     private HashMap<Integer, SoftReference<V>> cache;
     private HashMap<SoftReference<V>, HashSet<Integer>> subsidiaryMap;
-    private ReferenceQueue<V> referenceQueue;
+    private ReferenceQueue<? super Object> referenceQueue;
     private Deque<V> recentlyUsed;
     private int maxSize;
+    private int cleaningFrequency;
+    private int numOfPuts;
 
-    private SoftCacheMap(int size) {
+    private SoftCacheMap(int size, int frequency) {
         cache = new HashMap<>();
         /**
          * второй hashMap - вспомогательный, используется при удалении из кэша
@@ -19,9 +22,11 @@ public class SoftCacheMap<V> implements Cache<Integer, V> {
          * во втором hashMap-e.
          */
         subsidiaryMap = new HashMap<>();
-        referenceQueue = new ReferenceQueue<>();
+        referenceQueue = new ReferenceQueue();
         recentlyUsed = new LinkedList<>();
         maxSize = size;
+        cleaningFrequency = frequency;
+        numOfPuts = 0;
     }
 
     private void putInQueue(V object) {
@@ -47,7 +52,9 @@ public class SoftCacheMap<V> implements Cache<Integer, V> {
                 if (subsidiaryMap.containsKey(reference)) {
                     HashSet<Integer> localSet = subsidiaryMap.remove(reference);
                     for (Integer local : localSet) {
-                        cache.remove(local);
+                        if (reference.get() == null) {
+                            cache.remove(local);
+                        }
                     }
                 }
             } else {
@@ -67,6 +74,7 @@ public class SoftCacheMap<V> implements Cache<Integer, V> {
 
     @Override
     public void put(Integer key, V value) {
+        ++numOfPuts;
         SoftReference<V> reference = new SoftReference(value, referenceQueue);
         cache.put(key, reference);
         putInQueue(value);
@@ -76,7 +84,9 @@ public class SoftCacheMap<V> implements Cache<Integer, V> {
             subsidiaryMap.put(reference, new HashSet<>());
             subsidiaryMap.get(reference).add(key);
         }
-        clean();
+        if (numOfPuts % cleaningFrequency == 0) {
+            clean();
+        }
     }
 
     @Override
@@ -94,21 +104,55 @@ public class SoftCacheMap<V> implements Cache<Integer, V> {
         subsidiaryMap.clear();
     }
 
-    public static void main(String... args) {
-        SoftCacheMap cache = new SoftCacheMap(2);
-        for (int i = 0; i < 100; ++i) {
-            cache.put(i, i);
+    public static void main(String... args) throws InterruptedException {
+
+        /**
+         * проверка корректной работы referenceQueue
+         */
+
+        SoftCacheMap cache1 = new SoftCacheMap(0, 1);
+        cache1.put(0, new Integer(0));
+
+        /**
+         * должен быть 0
+         */
+        System.out.println(cache1.getIfPresent(0));
+
+        try {
+            Object[] big = new Object[(int) Runtime.getRuntime().maxMemory()];
+        } catch (OutOfMemoryError e) {
+            // ignore
         }
-        for (int i = 0; i < 100; ++i) {
-            if (cache.getIfPresent(i) == null) {
-                System.out.println("it doesn't work");
-            }
+
+        /**
+         * должен быть null
+         */
+        System.out.println(cache1.getIfPresent(0));
+        cache1.clear();
+
+
+        /**
+         * проверка корректной работы recentlyUsed
+         */
+
+        SoftCacheMap cache2 = new SoftCacheMap(1, 1);
+        cache2.put(0, new Integer(0));
+
+        /**
+         * должен быть 0
+         */
+        System.out.println(cache2.getIfPresent(0));
+
+        try {
+            Object[] big = new Object[(int) Runtime.getRuntime().maxMemory()];
+        } catch (OutOfMemoryError e) {
+            // ignore
         }
-        System.gc();
-        for (int i = 99; i >= 0; --i) {
-            if (cache.getIfPresent(i) == null) {
-                System.out.println("it works");
-            }
-        }
+
+        /**
+         * должен быть 0
+         */
+        System.out.println(cache2.getIfPresent(0));
+        cache2.clear();
     }
 }
