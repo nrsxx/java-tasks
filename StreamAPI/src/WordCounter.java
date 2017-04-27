@@ -4,9 +4,10 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
-import java.util.stream.Collectors;
+
 
 public class WordCounter {
 
@@ -16,11 +17,16 @@ public class WordCounter {
         file = new File(name);
     }
 
-    private static Map<String, Integer> MyAccumulator(Map<String, Integer> previous, String next) {
-        if (previous.containsKey(next)) {
-            previous.put(next, previous.get(next) + 1);
-        } else {
-            previous.put(next, 1);
+    private static Map<String, Integer> MyAccumulator(Map<String, Integer> previous, List<String> next) {
+        for (String word : next) {
+            if (word.equals("")) {
+                continue;
+            }
+            if (previous.containsKey(word.toLowerCase())) {
+                previous.put(word.toLowerCase(), previous.get(word.toLowerCase()) + 1);
+            } else {
+                previous.put(word.toLowerCase(), 1);
+            }
         }
         return previous;
     }
@@ -38,12 +44,9 @@ public class WordCounter {
 
     private Map<String, Integer> count() throws IOException {
 
-        return Arrays.stream(Files.readAllLines(file.toPath()).stream() //  список строк
-                .collect(Collectors.joining(","))          //  одна строка
-                .split("[\\p{Punct}\\s…«»—]"))                     //  список слов(включая пустые)
-                .filter((w) -> w.length() > 0)                          //  слова(без пустых)
-                .map(String::toLowerCase)                               //  слова с буквами в нижнем регистре
-                .collect(HashMap::new,                                  //  мап из слов и количеств их вхождений
+        return Files.lines(file.toPath())
+                .map((l) -> Arrays.asList(l.split("[\\p{Punct}\\s…«»—]")))
+                .collect(HashMap::new,
                 WordCounter::MyAccumulator,
                 WordCounter::MyCombiner);
     }
