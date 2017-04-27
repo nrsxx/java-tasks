@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 
 public class WordCounter {
@@ -18,17 +19,9 @@ public class WordCounter {
     }
 
     private static Map<String, Integer> MyAccumulator(Map<String, Integer> previous, List<String> next) {
-        for (String word : next) {
-            if (word.equals("")) {
-                continue;
-            }
-            if (previous.containsKey(word.toLowerCase())) {
-                previous.put(word.toLowerCase(), previous.get(word.toLowerCase()) + 1);
-            } else {
-                previous.put(word.toLowerCase(), 1);
-            }
-        }
-        return previous;
+
+        return WordCounter.MyCombiner(previous, next.stream().filter((w) -> w.length() > 0)
+                .collect(Collectors.groupingBy(String::toLowerCase, Collectors.summingInt((w) -> 1))));
     }
 
     private static Map<String, Integer> MyCombiner(Map<String, Integer> firstMap, Map<String, Integer> secondMap) {
