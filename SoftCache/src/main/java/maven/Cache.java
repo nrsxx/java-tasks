@@ -1,6 +1,5 @@
-/**
- * Created by david on 18.04.17.
- */
+package maven;
+
 public interface Cache<K, V> {
     /**
      * Возвращает соответствующее значение, если оно ещё в кэше, иначе null

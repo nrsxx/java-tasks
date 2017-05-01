@@ -1,3 +1,5 @@
+package maven;
+
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 import java.util.Deque;
@@ -15,7 +17,7 @@ public class SoftCacheMap<K, V> implements Cache<K, V> {
     private int cleaningFrequency;
     private int numOfPuts;
 
-    private SoftCacheMap(int size, int frequency) {
+    protected SoftCacheMap(int size, int frequency) {
         cache = new HashMap<>();
         /**
          * второй hashMap - вспомогательный, используется при удалении из кэша
@@ -106,55 +108,4 @@ public class SoftCacheMap<K, V> implements Cache<K, V> {
         subsidiaryMap.clear();
     }
 
-    public static void main(String... args) throws InterruptedException {
-
-        /**
-         * проверка корректной работы referenceQueue
-         */
-
-        SoftCacheMap cache1 = new SoftCacheMap(0, 1);
-        cache1.put(0, new Integer(0));
-
-        /**
-         * должен быть 0
-         */
-        System.out.println(cache1.getIfPresent(0));
-
-        try {
-            Object[] big = new Object[(int) Runtime.getRuntime().maxMemory()];
-        } catch (OutOfMemoryError e) {
-            // ignore
-        }
-
-        /**
-         * должен быть null
-         */
-        System.out.println(cache1.getIfPresent(0));
-        cache1.clear();
-
-
-        /**
-         * проверка корректной работы recentlyUsed
-         */
-
-        SoftCacheMap cache2 = new SoftCacheMap(1, 1);
-        cache2.put(0, new Integer(0));
-
-        /**
-         * должен быть 0
-         */
-        System.out.println(cache2.getIfPresent(0));
-
-        try {
-            Object[] big = new Object[(int) Runtime.getRuntime().maxMemory()];
-        } catch (OutOfMemoryError e) {
-            // ignore
-        }
-
-        /**
-         * должен быть 0
-         */
-        System.out.println(cache2.getIfPresent(0));
-        cache2.clear();
-    }
 }
