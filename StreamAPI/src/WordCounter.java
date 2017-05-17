@@ -4,11 +4,8 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
-import java.util.stream.Collectors;
-
 
 public class WordCounter {
 
@@ -18,10 +15,13 @@ public class WordCounter {
         file = new File(name);
     }
 
-    private static Map<String, Integer> MyAccumulator(Map<String, Integer> previous, List<String> next) {
-
-        return WordCounter.MyCombiner(previous, next.stream().filter((w) -> w.length() > 0)
-                .collect(Collectors.groupingBy(String::toLowerCase, Collectors.summingInt((w) -> 1))));
+    private static Map<String, Integer> MyAccumulator(Map<String, Integer> previous, String next) {
+        if (previous.containsKey(next)) {
+            previous.put(next, previous.get(next) + 1);
+        } else {
+            previous.put(next, 1);
+        }
+        return previous;
     }
 
     private static Map<String, Integer> MyCombiner(Map<String, Integer> firstMap, Map<String, Integer> secondMap) {
@@ -36,9 +36,10 @@ public class WordCounter {
     }
 
     private Map<String, Integer> count() throws IOException {
-
         return Files.lines(file.toPath())
-                .map((l) -> Arrays.asList(l.split("[\\p{Punct}\\s…«»—]")))
+                .flatMap((l) -> Arrays.stream(l.split("[\\p{Punct}\\s…«»—]")))
+                .filter((w) -> w.length() > 0)
+                .map(String::toLowerCase)
                 .collect(HashMap::new,
                 WordCounter::MyAccumulator,
                 WordCounter::MyCombiner);
